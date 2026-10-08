@@ -123,12 +123,12 @@ pms/
     │   └── vendor/
     │       └── tenants/
     │
-    ├── config/                           # module registry + nav (MODULE_UI, ADMIN_NAV), env schema, site config
+    ├── config/                           # modules.ts (modules + nav), env.ts (validated env), site.ts
     ├── lib/
     │   ├── rbac/                         # roles, permissions, can()/hasPerm(), <Can> guard, route guards
     │   ├── formatters/                   # currency (AUD, cents), dates, numbers
     │   ├── query/                        # QueryClient factory, query-key helpers, defaults
-    │   └── utils/                        # cn(), small pure helpers
+    │   └── utils.ts                      # cn() (shadcn)
     ├── providers/                        # QueryProvider, ThemeProvider, AuthProvider (composed in root layout)
     ├── stores/                           # GLOBAL Zustand stores only (ui, active store/module)
     ├── hooks/                            # global hooks (useDebounce, useHotkeys, usePermission…)
@@ -160,13 +160,13 @@ scripts/
 
 ## Modules, roles, permissions (from the reference app)
 
-| Module   | Route       | Permission prefix |
-|----------|-------------|-------------------|
-| Dispense | `/dispense` | `dispense.*`      |
-| POS      | `/pos`      | `pos.*`           |
-| Office   | `/office`   | `office.*`        |
-| HQ       | `/hq`       | `hq.*`            |
-| Admin    | `/admin`    | `platform.*`      |
+| Module   | Route       | Permission prefix   |
+| -------- | ----------- | ------------------- |
+| Dispense | `/dispense` | `dispense.*`        |
+| POS      | `/pos`      | `pos.*`             |
+| Office   | `/office`   | `office.*`          |
+| HQ       | `/hq`       | `hq.*`              |
+| Admin    | `/admin`    | `platform.*`        |
 | Vendor   | `/vendor`   | platform admin only |
 
 **Roles:** Pharmacist, Dispensary Technician, Pharmacy Assistant, Store Manager, Group Administrator, Pricing Manager, Category Manager, Reporting User, System Administrator.
@@ -175,9 +175,29 @@ Nav items are shown or hidden by permission (`lib/rbac`). Modules are gated by t
 
 ---
 
-## Root config files (added when code starts)
+## Root config files
 
-`package.json`, `tsconfig.json`, `next.config.ts`, `orval.config.ts`, `components.json` (shadcn), `eslint.config.mjs`, `.prettierrc`, `vitest.config.ts`, `playwright.config.ts`, `.env.example`, and `src/proxy.ts` (route protection; it is called `middleware.ts` on Next.js ≤ 15).
+| File                                   | Purpose                                                                    |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| `package.json`                         | scripts + deps (pnpm)                                                      |
+| `next.config.ts`                       | Next.js 16 — Cache Components + Partial Prefetching on                     |
+| `orval.config.ts`                      | API codegen → `src/api/generated`                                          |
+| `components.json`                      | shadcn/ui settings (Base UI, `base-nova` style)                            |
+| `eslint.config.mjs`, `.prettierrc`     | lint + format                                                              |
+| `vitest.config.mts`, `vitest.setup.ts` | unit tests                                                                 |
+| `.env.example`                         | env template — copy to `.env.local`                                        |
+| `AGENTS.md`                            | written by `next dev`: tells AI agents to read the bundled Next.js 16 docs |
+
+Not added yet: `playwright.config.ts` (e2e) and `src/proxy.ts` (route protection, added with auth).
+
+---
+
+## Next.js 16 rules to know
+
+- **Dynamic route params** (`[id]`) must be awaited inside `<Suspense>` — see any `[id]/page.tsx`.
+- **Client components that read the URL** (`usePathname`) must sit inside `<Suspense>` — see `components/layout/app-sidebar.tsx`.
+- **No `Math.random()` / `Date.now()` during render** of prerendered UI — the build fails.
+- **Route protection** lives in `src/proxy.ts` (the old `middleware.ts` name is deprecated).
 
 ---
 
@@ -186,4 +206,3 @@ Nav items are shown or hidden by permission (`lib/rbac`). Modules are gated by t
 - **Swagger:** the backend must expose an OpenAPI spec (`@nestjs/swagger`) for Orval.
 - **Orval output:** commit `src/api/generated/` to git, or generate it in CI?
 - **Auth:** confirm httpOnly-cookie sessions plus the `/api/auth/refresh` flow (the reference app uses this).
-- **Next.js version:** pin it (it decides whether `proxy.ts` or `middleware.ts` is used).
